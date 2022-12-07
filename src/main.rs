@@ -5,6 +5,7 @@ mod day02;
 mod day03;
 mod day04;
 mod day05;
+mod day06;
 
 fn main() {
     // day01::silver();
@@ -19,6 +20,9 @@ fn main() {
     // day04::silver();
     // day04::gold();
 
-    day05::silver();
-    day05::gold();
+    // day05::silver();
+    // day05::gold();
+
+    day06::silver_and_gold::<4>();
+    day06::silver_and_gold::<14>();
 }
