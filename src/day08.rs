@@ -1,7 +1,10 @@
-use std::{str::FromStr, convert::Infallible};
+use std::sync::Arc;
+use std::{str::FromStr, convert::Infallible, num::NonZeroUsize, sync::atomic::AtomicUsize};
 use itertools::Itertools;
+use std::thread;
+use std::sync::atomic::Ordering;
 
-static INPUT: &'static str = include_str!("input/day08.txt");
+static INPUT: &'static str = include_str!("input/bigboy.txt");
 
 #[derive(Debug, Clone)]
 struct Grid {
@@ -115,48 +118,78 @@ pub fn silver() {
     let visible_count = g.trees.iter()
         .filter(|it| it.1)
         .count();
-    println!("Visible: {}", visible_count);
+    println!("Silver: {}", visible_count);
 }
 
 pub fn gold() {
-    let g: Grid = INPUT.parse().unwrap();
-    let mut max: usize = 0;
+    let g: Arc<Grid> = Arc::new(INPUT.parse().unwrap());
+    let max: Arc<AtomicUsize> = Arc::new(AtomicUsize::new(0));
 
-    for col in 1..g.size-1 { // Don't consider edges, their score is always 0
-        for row in 1..g.size-1 {
-            let now = g.n(col, row);
+    let stride = thread::available_parallelism()
+        .unwrap_or(unsafe { NonZeroUsize::new_unchecked(1) })
+        .get();
 
-            // sad: https://github.com/rust-lang/rust/issues/62208
-            let mut iter_north = (0..row).rev().map(|i| g.n(col, i)).peekable();
-            let mut s_n = iter_north
-                .peeking_take_while(|&h| h < now)
-                .collect::<Vec<_>>();
-            s_n.extend(iter_north.next());
+    println!("available parallelism: {stride}");
+    thread::scope(|scope| {
+        for t in 0..stride {
+            let g = g.clone();
+            let max = max.clone();
 
-            let mut iter_south = (row+1..g.size).map(|i| g.n(col, i)).peekable();
-            let mut s_s = iter_south
-                .peeking_take_while(|&h| h < now)
-                .collect::<Vec<_>>();
-            s_s.extend(iter_south.next());
+            scope.spawn(move || {
+                // Pre-allocate vectors for each direction
+                let mut arena: [Vec<u8>; 4] = std::array::from_fn(|_| Vec::with_capacity(g.size));
 
-            let mut iter_east = (0..col).rev().map(|i| g.n(i, row)).peekable();
-            let mut s_e = iter_east
-                .peeking_take_while(|&h| h < now)
-                .collect::<Vec<_>>();
-            s_e.extend(iter_east.next());
+                for tree in (t+1..g.size*g.size).step_by(stride) {
+                    let col = tree.rem_euclid(g.size);
+                    let row = tree.div_euclid(g.size);
 
-            let mut iter_west = (col+1..g.size).map(|i| g.n(i, row)).peekable();
-            let mut s_w = iter_west
-                .peeking_take_while(|&h| h < now)
-                .collect::<Vec<_>>();
-            s_w.extend(iter_west.next());
+                    // Skip borders
+                    if col == 0 || row == 0 || col == g.size || row == g.size {
+                        continue;
+                    }
 
-            let total = [s_n, s_w, s_e, s_s].iter().map(|v| v.len()).reduce(|acc, it| acc * it).unwrap();
-            if total > max {
-                max = total;
-            }
+                    let height = g.n(col, row);
+
+                    // sad: https://github.com/rust-lang/rust/issues/62208
+                    let mut iter_north = (0..row).rev().map(|i| g.n(col, i)).peekable();
+                    let s_n = iter_north.peeking_take_while(|&h| h < height);
+                    arena[0].extend(s_n);
+                    arena[0].extend(iter_north.next());
+
+                    let mut iter_south = (row+1..g.size).map(|i| g.n(col, i)).peekable();
+                    let s_s = iter_south.peeking_take_while(|&h| h < height);
+                    arena[1].extend(s_s);
+                    arena[1].extend(iter_south.next());
+
+                    let mut iter_east = (0..col).rev().map(|i| g.n(i, row)).peekable();
+                    let s_e = iter_east.peeking_take_while(|&h| h < height);
+                    arena[2].extend(s_e);
+                    arena[2].extend(iter_east.next());
+
+                    let mut iter_west = (col+1..g.size).map(|i| g.n(i, row)).peekable();
+                    let s_w = iter_west.peeking_take_while(|&h| h < height);
+                    arena[3].extend(s_w);
+                    arena[3].extend(iter_west.next());
+
+                    let total = arena.iter()
+                        .map(|v| v.len())
+                        .reduce(|acc, it| acc * it)
+                        .unwrap();
+
+                    // Update maximum value
+                    max.fetch_update(
+                        Ordering::Relaxed,
+                        Ordering::Relaxed,
+                        |m| if total > m { Some(total) } else { None }
+                    ).ok();
+
+                    // Clear arena for reuse
+                    arena.iter_mut().for_each(|vec| vec.clear());
+                }
+            });
         }
-    }
+    });
 
-    println!("Max score: {max}");
+    // This is safe since all other references to Arc have been dropped
+    println!("Gold: {}", Arc::try_unwrap(max).unwrap().into_inner());
 }

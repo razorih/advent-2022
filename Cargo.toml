@@ -11,3 +11,5 @@ itertools = "0.10.5"
 [profile.release-with-debug]
 inherits = "release"
 debug = true
+panic = "abort"
+lto = true
