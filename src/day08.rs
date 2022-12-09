@@ -4,7 +4,7 @@ use itertools::Itertools;
 use std::thread;
 use std::sync::atomic::Ordering;
 
-static INPUT: &'static str = include_str!("input/bigboy.txt");
+static INPUT: &'static str = include_str!("input/day08.txt");
 
 #[derive(Debug, Clone)]
 struct Grid {
