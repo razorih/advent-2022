@@ -37,25 +37,26 @@ impl std::str::FromStr for Instruction {
     }
 }
 
-fn check(machine: &Machine, out: &mut Vec<i64>) {
-    const POINTS: [i64; 6] = [20, 60, 100, 140, 180, 220];
-    // POINTS array is sorted so binary search can be used.
-    if let Ok(index) = POINTS.binary_search(&machine.cycle.try_into().unwrap()) {
-        out.push(POINTS[index] * machine.x);
+impl Machine {
+    fn write_if_interesting(&self, out: &mut Vec<i64>) {
+        const POINTS: [i64; 6] = [20, 60, 100, 140, 180, 220];
+        // POINTS array is sorted so binary search can be used.
+        if let Ok(index) = POINTS.binary_search(&(self.cycle as i64)) {
+            out.push(POINTS[index] * self.x);
+        }
     }
-}
 
-fn draw(machine: &Machine) {
-    // horizontal position
-    let pos = (machine.cycle - 1) % 40;
+    fn draw(&self) {
+        let h_pos = (self.cycle - 1) % 40;
 
-    if pos == 0 {
-        print!("\n");
-    }
-    if (pos as i64 - machine.x).abs() < 2{
-        print!("█"); // Actual real "pixels"
-    } else {
-        print!(" ");
+        if h_pos == 0 {
+            print!("\n");
+        }
+        if (h_pos as i64 - self.x).abs() <= 1 {
+            print!("█"); // Actual real "pixels"
+        } else {
+            print!(" ");
+        }
     }
 }
 
@@ -68,20 +69,20 @@ pub fn silver_and_gold() {
         let inst: Instruction = line.parse().unwrap();
 
         machine.cycle += 1;
-        draw(&machine);
+        machine.draw();
         match inst {
             Instruction::Noop => {},
             Instruction::Addx(val) => {
                 // Do nothing
-                check(&machine, &mut strengths);
+                machine.write_if_interesting(&mut strengths);
 
                 // Take extra cycle to increment X
                 machine.cycle += 1;
                 machine.x += val;
-                draw(&machine);
+                machine.draw();
             }
         }
-        check(&machine, &mut strengths); // Combined check for cycles ending NOOP and ADDX
+        machine.write_if_interesting(&mut strengths); // Combined check for cycles ending NOOP and ADDX
     }
 
     println!("\nSilver: {:?}", strengths.iter().sum::<i64>());
