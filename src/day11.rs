@@ -48,6 +48,7 @@ pub fn silver_and_gold<const N: usize, const S: bool>() {
 
     let mut input = _real;
     // Product of all test divisors
+    // for more optimal version, calculate least-common multiple
     let prod = input.iter().fold(1, |acc, m| acc * m.test.0);
 
     for _round in 0..N  {
@@ -59,6 +60,9 @@ pub fn silver_and_gold<const N: usize, const S: bool>() {
                 let item = if S { // Solving silver
                     (input[monkey_i].op)(item) / 3
                 } else { // Solving gold
+                    // Modulo operation here effectively wraps worry level into between
+                    // [0, w_0 * w_1 * ... * w_m), where `m` is number of monkeys
+                    // Resulting number can then be used in divisibility check below.
                     (input[monkey_i].op)(item) % prod
                 };
 
