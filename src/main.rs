@@ -11,6 +11,7 @@ mod day08;
 mod day09;
 mod day10;
 mod day11;
+mod day12;
 
 fn main() {
     // day01::silver();
@@ -41,6 +42,9 @@ fn main() {
      
     // day10::silver_and_gold();
      
-    day11::silver_and_gold::<20, true>();
-    day11::silver_and_gold::<10_000, false>();
+    // day11::silver_and_gold::<20, true>();
+    // day11::silver_and_gold::<10_000, false>();
+     
+    //day12::silver();
+    day12::gold();
 }
