@@ -1,5 +1,5 @@
 static INPUT: &'static str = include_str!("input/day14.txt");
-use std::{collections::HashSet, str::FromStr};
+use std::str::FromStr;
 
 use itertools::{Itertools, MinMaxResult};
 
@@ -17,15 +17,23 @@ fn generic_range_inclusive(a: usize, b: usize) -> impl Iterator<Item = usize> {
 }
 
 #[derive(Debug)]
+enum Floor {
+    Abyss(usize),
+    Infinite(usize),
+}
+
+type RockSet<T> = std::collections::HashSet<T>;
+
+#[derive(Debug)]
 struct Cave {
-    rocks: HashSet<(usize, usize)>,
+    rocks: RockSet<(usize, usize)>,
     source: (usize, usize),
     bounds: (usize, usize), // minimum and maximum x-coordinate where rocks appear
-    floor: Option<usize>, // y-coordinate of the infinite floor, None if bottomless
+    floor: Floor, // y-coordinate of the infinite floor, None if bottomless
 }
 
 impl Cave {
-    fn new(rocks: HashSet<(usize, usize)>, source: (usize, usize)) -> Self {
+    fn new(rocks: RockSet<(usize, usize)>, source: (usize, usize)) -> Self {
         let bounds = rocks.iter().minmax_by_key(|&i| i.0); // Look for min and max x coordinate
         let bounds = match bounds {
             MinMaxResult::MinMax(min, max) => (min.0, max.0), // Just the x coord
@@ -37,7 +45,7 @@ impl Cave {
             rocks,
             source,
             bounds,
-            floor: Some(floor.1 + 2),
+            floor: Floor::Abyss(floor.1),
         }
     }
 }
@@ -46,7 +54,7 @@ impl FromStr for Cave {
     type Err = std::convert::Infallible;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut rocks = HashSet::with_capacity(1024);
+        let mut rocks = RockSet::new();
 
         for path in s.lines() {
             for (start, end) in path.split(" -> ")
@@ -83,10 +91,9 @@ impl Sand {
         // Order: Down, LeftDown, RightDown
         // If any succeeds, adjust pos and return true
         // If all fail, don't adjust pos and return false, sand is now resting
-        //
-        // Gold: Also prevent falling through floor
 
-        if let Some(floor) = cave.floor {
+        // Handle infinite floor
+        if let Floor::Infinite(floor) = cave.floor {
             if pos.1 + 1 >= floor {
                 return false; // We cannot move through the floor in any case, sand is resting
             }
@@ -118,7 +125,6 @@ impl Sand {
 
 pub fn silver() {
     let mut cave: Cave = INPUT.parse().unwrap();
-    cave.floor = None; // Abyss
     let mut steps: usize = 0;
 
     println!("Cave bounds: {:?}, floor: {:?}", cave.bounds, cave.floor);
@@ -127,9 +133,11 @@ pub fn silver() {
         let mut sand = Sand(cave.source); // Create a new piece of sand
 
         while sand.simulate(&cave) { // Simulate until resting
-            if sand.0.0 < cave.bounds.0 || sand.0.1 > cave.bounds.1 {
-                println!("Falling into Abyss at ({}, {})", sand.0.0, sand.0.1);
-                break 'outer;
+            if let Floor::Abyss(height) = cave.floor {
+                if sand.0.1 > height {
+                    println!("Falling into Abyss at ({}, {})", sand.0.0, sand.0.1);
+                    break 'outer;
+                }
             }
         }
 
@@ -142,6 +150,10 @@ pub fn silver() {
 
 pub fn gold() {
     let mut cave: Cave = INPUT.parse().unwrap();
+    // Replace Abyss with Infinite floor two units below
+    if let Floor::Abyss(height) = cave.floor {
+        cave.floor = Floor::Infinite(height + 2);
+    }
     let mut steps: usize = 0;
 
     println!("Cave bounds: {:?}, floor: {:?}", cave.bounds, cave.floor);
