@@ -1,7 +1,7 @@
 static INPUT: &'static str = include_str!("input/day14.txt");
 use std::str::FromStr;
 
-use itertools::{Itertools, MinMaxResult};
+use itertools::Itertools;
 
 /// Same as a..=b but supports ranges where a > b
 fn generic_range_inclusive(a: usize, b: usize) -> impl Iterator<Item = usize> {
@@ -28,23 +28,15 @@ type RockSet<T> = std::collections::HashSet<T>;
 struct Cave {
     rocks: RockSet<(usize, usize)>,
     source: (usize, usize),
-    bounds: (usize, usize), // minimum and maximum x-coordinate where rocks appear
-    floor: Floor, // y-coordinate of the infinite floor, None if bottomless
+    floor: Floor,
 }
 
 impl Cave {
     fn new(rocks: RockSet<(usize, usize)>, source: (usize, usize)) -> Self {
-        let bounds = rocks.iter().minmax_by_key(|&i| i.0); // Look for min and max x coordinate
-        let bounds = match bounds {
-            MinMaxResult::MinMax(min, max) => (min.0, max.0), // Just the x coord
-            _ => unreachable!(), // Some silly behaviour going on
-        };
         let floor = *rocks.iter().max_by_key(|&&i| i.1).unwrap();
-
         Self {
             rocks,
             source,
-            bounds,
             floor: Floor::Abyss(floor.1),
         }
     }
@@ -83,7 +75,7 @@ struct Sand((usize, usize));
 impl Sand {
     /// Simulates time step.
     /// Returns `true` if sand moved somewhere,
-    /// `false` if sand didn't move and is resting.
+    /// `false` if sand didn't move and is now resting.
     fn simulate(&mut self, cave: &Cave) -> bool {
         let pos = &mut self.0;
         let rocks = &cave.rocks;
@@ -127,7 +119,7 @@ pub fn silver() {
     let mut cave: Cave = INPUT.parse().unwrap();
     let mut steps: usize = 0;
 
-    println!("Cave bounds: {:?}, floor: {:?}", cave.bounds, cave.floor);
+    println!("Cave floor: {:?}", cave.floor);
 
     'outer: loop {
         let mut sand = Sand(cave.source); // Create a new piece of sand
@@ -156,7 +148,7 @@ pub fn gold() {
     }
     let mut steps: usize = 0;
 
-    println!("Cave bounds: {:?}, floor: {:?}", cave.bounds, cave.floor);
+    println!("Cave floor: {:?}", cave.floor);
 
     'outer: loop {
         let mut sand = Sand(cave.source); // Create a new piece of sand
