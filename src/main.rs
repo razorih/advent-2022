@@ -57,6 +57,15 @@ fn main() {
     // day14::silver();
     // day14::gold();
      
-    day15::silver();
-    day15::gold();
+    // day15::silver();
+    // day15::gold();
+    
+    //
+    //
+
+    //
+    //
+    
+    day18::silver();
+    day18::gold();
 }
