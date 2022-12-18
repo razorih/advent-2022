@@ -4,7 +4,7 @@ use std::collections::HashSet;
 static INPUT: &'static str = include_str!("input/day18.txt");
 
 
-type Point = (i8, i8, i8);
+type Point = (i32, i32, i32);
 pub fn silver() {
     // Put all cubes into a set
     let grid: HashSet<Point> = HashSet::from_iter(INPUT.lines().map(|line| {
@@ -17,7 +17,7 @@ pub fn silver() {
     let mut total_free = 0;
     // For each cube, count nonexisting neighbours ie. free faces
     for cube in grid.iter() {
-        let nearby: [(i8, i8, i8); 6] = [
+        let nearby: [(i32, i32, i32); 6] = [
             (-1,  0,  0),
             ( 1,  0,  0),
             ( 0, -1,  0),
@@ -39,7 +39,7 @@ pub fn silver() {
 
 /// Returns `true` if given point is contained withing given bounds.
 /// False otherwise
-fn in_bounds(p: &Point, bx: &(i8, i8), by: &(i8, i8), bz: &(i8, i8)) -> bool {
+fn in_bounds(p: &Point, bx: &(i32, i32), by: &(i32, i32), bz: &(i32, i32)) -> bool {
     if p.0 < bx.0 || p.0 > bx.1 {
         return false;
     }
@@ -87,7 +87,7 @@ pub fn gold() {
     let mut total_free = 0;
     // For each cube, count neighbours that don't exist
     for cube in grid.iter() {
-        const NEARBY: [(i8, i8, i8); 6] = [
+        const NEARBY: [(i32, i32, i32); 6] = [
             (-1,  0,  0),
             ( 1,  0,  0),
             ( 0, -1,  0),
